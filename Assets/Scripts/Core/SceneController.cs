@@ -5,11 +5,11 @@ public static class SceneController
 {
     public static void ChangeSceneToGame()
     {
-        SceneManager.LoadScene(SceneNames.MainGame);
+        SceneManager.LoadSceneAsync(SceneNames.MainGame);
     }
 
     public static void ChangeSceneToMainMenu()
     {
-        SceneManager.LoadScene(SceneNames.MainMenu);
+        SceneManager.LoadSceneAsync(SceneNames.MainMenu);
     }
 }

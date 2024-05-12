@@ -6,7 +6,6 @@ public static class Constants
 {
     public static class FirebaseConstants
     {
-        public static int DeviceEnabledTime = 5;
-        public static int DeleteCommandTime = 20;
+        public static int DeviceEnabledTime = 3;
     }
 }

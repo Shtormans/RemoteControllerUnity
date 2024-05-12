@@ -49,6 +49,8 @@ public class RegistrationController : MonoBehaviour
         }
         else
         {
+            PlayerPrefsRepository.SetUserPassword(_password.text);
+
             SceneController.ChangeSceneToGame();
         }
     }

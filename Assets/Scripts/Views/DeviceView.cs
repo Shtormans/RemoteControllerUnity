@@ -2,6 +2,7 @@ using Firebase.Auth;
 using Firebase.Database;
 using System;
 using System.Collections;
+using System.Globalization;
 using TMPro;
 using UnityEngine;
 
@@ -14,10 +15,9 @@ public enum DeviceStatus
 
 public class DeviceModel
 {
-    public Guid Id;
+    public string Id;
     public string Name;
-    public string PublicTempKey;
-    public DeviceStatus DeviceStatus;
+    public bool IsCurrentDevice;
 }
 
 public class DeviceView : MonoBehaviour
@@ -27,33 +27,43 @@ public class DeviceView : MonoBehaviour
     [SerializeField] private RectTransform _buttonsPanel;
     [SerializeField] private RectTransform _yourDevicePanel;
 
-    private Guid _id;
+    private string _id;
     private string _name;
-    private string _publicTempKey;
     private DeviceStatus _status;
 
     private DatabaseReference _dbReference;
-    private FirebaseAuth _auth;
 
     private void Awake()
     {
         _dbReference = FirebaseDatabase.DefaultInstance.RootReference;
-        _auth = FirebaseAuth.DefaultInstance;
     }
 
     public void Init(DeviceModel deviceModel)
     {
         _id = deviceModel.Id;
         _name = deviceModel.Name;
-        _publicTempKey = deviceModel.PublicTempKey;
-        _status = deviceModel.DeviceStatus;
+        _nameText.text = _name;
 
-        ChangeViewStatus(_status);
-
-        if (_status != DeviceStatus.CurrentDevice)
+        if (deviceModel.IsCurrentDevice)
         {
-            StartCoroutine(GetDeviceStatusLoop());
+            _status = DeviceStatus.CurrentDevice;
+            ChangeViewStatus(_status);
+
+            StartCoroutine(CurrentDeviceStatusLoop());
         }
+        else
+        {
+            _status = DeviceStatus.Disabled;
+            ChangeViewStatus(_status);
+
+            StartCoroutine(NotCurrentDeviceStatusLoop());
+        }
+    }
+
+    public void SendShutodownCommand()
+    {
+        Debug.LogError("Here");
+        StartCoroutine(SendCommand(DeviceCommandHandler.ShutdownCommand));
     }
 
     private void ChangeViewStatus(DeviceStatus deviceStatus)
@@ -78,29 +88,37 @@ public class DeviceView : MonoBehaviour
         }
     }
 
-    private IEnumerator GetDeviceStatusLoop()
+    private IEnumerator NotCurrentDeviceStatusLoop()
     {
         while (true)
         {
-            yield return GetDeviceStatus();
+            yield return NotCurrentDeviceStatusCoroutine();
+
+            yield return new WaitForSeconds(1);
         }
     }
 
-    private IEnumerator GetDeviceStatus()
+    private IEnumerator CurrentDeviceStatusLoop()
     {
-        var dbTask = _dbReference.Child("Devices").Child(_id.ToString()).Child("LastTimeSeen").GetValueAsync();
+        while (true)
+        {
+            yield return CurrentDeviceStatusCoroutine();
+
+            yield return new WaitForSeconds(1);
+        }
+    }
+
+    private IEnumerator NotCurrentDeviceStatusCoroutine()
+    {
+        var dbTask = _dbReference.Child("Devices").Child(_id.ToString()).Child("Enabled").GetValueAsync();
 
         yield return new WaitUntil(() => dbTask.IsCompleted);
 
-        if (dbTask.Exception == null)
-        {
-            yield break;
-        }
-
         DataSnapshot result = dbTask.Result;
-        DateTime lastSeenTime = DateTime.Parse(result.GetValue(false).ToString());
+        DateTime lastSeenTime = DateTime.ParseExact(result.GetValue(false).ToString(), "M.d.yyyy HH:mm:ss", CultureInfo.InvariantCulture);
 
-        TimeSpan difference = DateTime.Now - lastSeenTime;
+
+        TimeSpan difference = DateTime.UtcNow - lastSeenTime;
 
         if (difference.TotalSeconds > Constants.FirebaseConstants.DeviceEnabledTime)
         {
@@ -110,5 +128,46 @@ public class DeviceView : MonoBehaviour
         {
             ChangeViewStatus(DeviceStatus.Enabled);
         }
+    }
+
+    private IEnumerator CurrentDeviceStatusCoroutine()
+    {
+        yield return UpdateLastSeenTime();
+
+        yield return ReceiveCommand();
+    }
+
+    private IEnumerator UpdateLastSeenTime()
+    {
+        var dbTask = _dbReference.Child("Devices").Child(_id).Child("Enabled").SetValueAsync(DateTime.UtcNow.ToString("M.d.yyyy HH:mm:ss"));
+
+        yield return new WaitUntil(() => dbTask.IsCompleted);
+    }
+
+    private IEnumerator ReceiveCommand()
+    {
+        var dbTask = _dbReference.Child("Devices").Child(_id).Child("Command").GetValueAsync();
+
+        yield return new WaitUntil(() => dbTask.IsCompleted);
+
+        DataSnapshot result = dbTask.Result;
+
+        object command = result.GetValue(false);
+
+        if (command == null || string.IsNullOrEmpty(command.ToString()))
+        {
+            yield break;
+        }
+
+        yield return SendCommand("");
+
+        DeviceCommandHandler.Handle(command.ToString());
+    }
+
+    private IEnumerator SendCommand(string command)
+    {
+        var dbTask = _dbReference.Child("Devices").Child(_id).Child("Command").SetValueAsync(command);
+
+        yield return new WaitUntil(() => dbTask.IsCompleted);
     }
 }

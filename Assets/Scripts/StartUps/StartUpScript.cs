@@ -1,6 +1,8 @@
+using Firebase.Auth;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class StartUpScript : MonoBehaviour
 {
@@ -11,5 +13,14 @@ public class StartUpScript : MonoBehaviour
         Application.targetFrameRate = 60;
         
         Screen.SetResolution(_startUpScreenResolution.x, _startUpScreenResolution.y, false);
+
+        if (FirebaseAuth.DefaultInstance.CurrentUser != null)
+        {
+            SceneController.ChangeSceneToGame();
+        }
+        else
+        {
+            SceneController.ChangeSceneToMainMenu();
+        }
     }
 }

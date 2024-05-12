@@ -6,7 +6,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using UnityEngine;
+using static System.Collections.Specialized.BitVector32;
 
 public class FirebaseRepository : MonoBehaviour
 {
@@ -23,18 +25,19 @@ public class FirebaseRepository : MonoBehaviour
         get { return _instance; }
     }
 
+    public bool IsDatabaseLoaded { get; private set; }
+
     private void Awake()
     {
         if (_instance == null)
         {
             _instance = this;
+            DontDestroyOnLoad(gameObject);
         }
         else if (_instance == this)
         {
             Destroy(gameObject);
         }
-
-        DontDestroyOnLoad(gameObject);
     }
 
     private void Start()
@@ -52,6 +55,7 @@ public class FirebaseRepository : MonoBehaviour
                 Debug.LogError("Could not resolve all Firebase dependencies: " + dependencyStatus);
             }
 
+            IsDatabaseLoaded = true;
             DatabaseLoaded?.Invoke();
         });
     }
@@ -59,6 +63,7 @@ public class FirebaseRepository : MonoBehaviour
     private void InitializeFirebase()
     {
         _auth = FirebaseAuth.DefaultInstance;
+
         _dbReference = FirebaseDatabase.DefaultInstance.RootReference;
     }
 
@@ -96,6 +101,16 @@ public class FirebaseRepository : MonoBehaviour
     public void GetLeaderboard(Action<Result<List<UserWithScore>>> action = null)
     {
         StartCoroutine(GetScoreBoard(action));
+    }
+
+    public void SetTempKey(string tempKey)
+    {
+        StartCoroutine(SetTempKeyCoroutine(tempKey));
+    }
+
+    public void GetUserDevices(Action<List<DeviceModel>> action)
+    {
+        StartCoroutine(GetUserDevicesCoroutine(action));
     }
 
     private IEnumerator AwaitGetMaxScore(Action<Result<int>> action)
@@ -210,6 +225,9 @@ public class FirebaseRepository : MonoBehaviour
         if (loginTask.Exception == null)
         {
             FirebaseUser firebaseUser = loginTask.Result.User;
+
+            yield return UpdateUserData();
+
             action?.Invoke(Result.Success(user));
 
             yield break;
@@ -229,6 +247,69 @@ public class FirebaseRepository : MonoBehaviour
             yield break;
         }
 
+        yield return UpdateUserData();
+
         action?.Invoke(Result.Success());
+    }
+
+    private IEnumerator UpdateUserData()
+    {
+        if (!PlayerPrefsRepository.TryGetDeviceIdKey(out string deviceId))
+        {
+            yield return CreateNewDevice();
+
+            PlayerPrefsRepository.TryGetDeviceIdKey(out deviceId);
+        }
+
+        string tempName = Guid.NewGuid().ToString()[..5];
+
+        var dbTask = _dbReference.Child("Users").Child(_auth.CurrentUser.UserId).Child("Devices").Child(deviceId).SetValueAsync(tempName);
+
+        yield return new WaitUntil(() => dbTask.IsCompleted);
+    }
+
+    private IEnumerator CreateNewDevice()
+    {
+        string id = Guid.NewGuid().ToString();
+
+        var dbTask = _dbReference.Child("Devices").Child(id).Child("Enabled").SetValueAsync(DateTime.UtcNow.ToString("M.d.yyyy HH:mm:ss"));
+
+        yield return new WaitUntil(() => dbTask.IsCompleted);
+
+        PlayerPrefsRepository.SetDeviceIdKey(id);
+    }
+
+    private IEnumerator SetTempKeyCoroutine(string tempKey)
+    {
+        PlayerPrefsRepository.TryGetDeviceIdKey(out string id);
+
+        var dbTask = _dbReference.Child("Devices").Child(id).Child("TempKey").SetValueAsync(tempKey);
+
+        yield return new WaitUntil(() => dbTask.IsCompleted);
+    }
+
+    private IEnumerator GetUserDevicesCoroutine(Action<List<DeviceModel>> action)
+    {
+        var dbTask = _dbReference.Child("Users").Child(_auth.CurrentUser.UserId).Child("Devices").GetValueAsync();
+
+        yield return new WaitUntil(() => dbTask.IsCompleted);
+
+        DataSnapshot snapshot = dbTask.Result;
+
+        PlayerPrefsRepository.TryGetDeviceIdKey(out string devideId);
+
+        List<DeviceModel> deviceModels = snapshot.Children
+            .Select(item =>
+            {
+                return new DeviceModel()
+                {
+                    Id = item.Key.ToString(),
+                    Name = item.Value.ToString(),
+                    IsCurrentDevice = devideId == item.Key.ToString()
+                };
+            })
+            .ToList();
+
+        action?.Invoke(deviceModels);
     }
 }

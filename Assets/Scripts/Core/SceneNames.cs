@@ -3,6 +3,6 @@ using UnityEditor;
 
 public static class SceneNames
 {
-    public const string MainMenu = "Registration";
-    public const string MainGame = "MainGame";
+    public const string MainMenu = "RegistrationScene";
+    public const string MainGame = "MainScene";
 }
