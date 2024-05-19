@@ -2,6 +2,7 @@ using Firebase.Auth;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,6 +14,9 @@ public class MainSceneStartUpScript : MonoBehaviour
     [SerializeField] private TMP_InputField _passwordText;
     [SerializeField] private DeviceView _prefab;
     [SerializeField] private GridLayoutGroup _devicesParent;
+
+    private int _devicesAmount;
+    private List<DeviceView> _deviceViews = new();
 
     private void Start()
     {
@@ -52,6 +56,63 @@ public class MainSceneStartUpScript : MonoBehaviour
         {
             DeviceView deviceView = Instantiate(_prefab, _devicesParent.transform);
             deviceView.Init(model);
+
+            _deviceViews.Add(deviceView);
+        }
+
+        _devicesAmount = deviceModels.Count;
+        StartCoroutine(CheckForDevicesUpdate());
+    }
+
+    private IEnumerator CheckForDevicesUpdate()
+    {
+        while (true)
+        {
+            yield return FirebaseRepository.Instance.GetUserDevicesCoroutine(UpdateDevices);
+
+            yield return new WaitForSeconds(1);
+        }
+    }
+
+    private void UpdateDevices(List<DeviceModel> devices)
+    {
+        _devicesAmount = devices.Count;
+
+        if (devices.Count == _devicesAmount)
+        {
+            foreach(DeviceModel model in devices)
+            {
+                DeviceView view = _deviceViews.First(view => view.Id == model.Id);
+
+                if (view.Name != model.Name)
+                {
+                    view.SetName(model.Name);
+                }
+            }
+
+            return;
+        }
+
+        if (devices.Count > _devicesAmount)
+        {
+            DeviceModel newModel = devices.First(model => _deviceViews.Count(view => view.Id == model.Id) == 0);
+
+            DeviceView deviceView = Instantiate(_prefab, _devicesParent.transform);
+            deviceView.Init(newModel);
+
+            _deviceViews.Add(deviceView);
+
+            return;
+        }
+
+        if (devices.Count < _devicesAmount)
+        {
+            DeviceView deviceView = _deviceViews.First(view => devices.Count(model => model.Id == view.Id) == 0);
+
+            _deviceViews.Remove(deviceView);
+            Destroy(deviceView.gameObject);
+
+            return;
         }
     }
 }

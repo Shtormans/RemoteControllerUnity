@@ -40,9 +40,6 @@ public class UdpController : MonoBehaviour
         model.Ip = localIp;
         model.Port = localPort;
 
-        Debug.Log(localIp);
-        Debug.Log(localPort);
-
         return model;
     }
 

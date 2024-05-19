@@ -3,15 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class DropdownVariants : MonoBehaviour, IDragHandler
+public class DropdownVariants : MonoBehaviour
 {
     public void Disable()
     {
         PopupManager.PopupCover.Disable();
-        gameObject.SetActive(false);
-    }
-
-    public void OnDrag(PointerEventData eventData)
-    {
     }
 }

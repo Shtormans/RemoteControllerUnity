@@ -5,14 +5,13 @@ using Firebase.Extensions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
-using System.Security.Cryptography;
 using UnityEngine;
-using static System.Collections.Specialized.BitVector32;
+using static UnityEngine.Networking.UnityWebRequest;
 
 public class FirebaseRepository : MonoBehaviour
 {
-    [SerializeField] private int _amountInScoreTable = 100;
     private FirebaseAuth _auth;
     private DatabaseReference _dbReference;
 
@@ -87,22 +86,6 @@ public class FirebaseRepository : MonoBehaviour
         _auth.SignOut();
     }
 
-    public void SaveScore(int score, Action<Result> action = null)
-    {
-        StartCoroutine(SaveUsername(action));
-        StartCoroutine(UpdateScore(score, action));
-    }
-
-    public void GetMaxScore(Action<Result<int>> action)
-    {
-        StartCoroutine(AwaitGetMaxScore(action));
-    }
-
-    public void GetLeaderboard(Action<Result<List<UserWithScore>>> action = null)
-    {
-        StartCoroutine(GetScoreBoard(action));
-    }
-
     public void SetTempKey(string tempKey)
     {
         StartCoroutine(SetTempKeyCoroutine(tempKey));
@@ -113,107 +96,9 @@ public class FirebaseRepository : MonoBehaviour
         StartCoroutine(GetUserDevicesCoroutine(action));
     }
 
-    private IEnumerator AwaitGetMaxScore(Action<Result<int>> action)
+    public void GetDevice(string tempKey, Action<Result<DeviceModel>> action)
     {
-        var userId = _auth.CurrentUser.UserId;
-
-        var dbTask = _dbReference.Child("Users").Child(userId).Child("Score").GetValueAsync();
-
-        yield return new WaitUntil(() => dbTask.IsCompleted);
-
-        if (dbTask.Exception != null)
-        {
-            Debug.LogWarning(dbTask.Exception.Message);
-            var callbackResult = Result.Failure<int>(
-                new Error("Database.Exception", dbTask.Exception.Message)
-            );
-
-            action?.Invoke(callbackResult);
-
-            yield break;
-        }
-
-        DataSnapshot snapshot = dbTask.Result;
-        var result = int.Parse(snapshot.GetValue(false).ToString());
-
-        action?.Invoke(result);
-    }
-
-    private IEnumerator GetScoreBoard(Action<Result<List<UserWithScore>>> action)
-    {
-        var dbTask = _dbReference.Child("Users").OrderByChild("Score").LimitToFirst(_amountInScoreTable).GetValueAsync();
-
-        yield return new WaitUntil(() => dbTask.IsCompleted);
-
-        if (dbTask.Exception != null)
-        {
-            Debug.LogWarning(dbTask.Exception.Message);
-            var callbackResult = Result.Failure<List<UserWithScore>>(
-                new Error("Database.Exception", dbTask.Exception.Message)
-            );
-
-            action?.Invoke(callbackResult);
-
-            yield break;
-        }
-
-        DataSnapshot snapshot = dbTask.Result;
-
-        var result = snapshot.Children.Reverse()
-            .Select(item =>
-            {
-                return new UserWithScore()
-                {
-                    UserId = item.Key.ToString(),
-                    Username = item.Child("Username").Value.ToString(),
-                    Score = int.Parse(item.Child("Score").Value.ToString())
-                };
-            })
-            .ToList();
-
-        action?.Invoke(result);
-    }
-
-    private IEnumerator SaveUsername(Action<Result> action)
-    {
-        var dbTask = _dbReference.Child("Users").Child(_auth.CurrentUser.UserId).Child("Username").SetValueAsync(_auth.CurrentUser.DisplayName);
-
-        yield return new WaitUntil(() => dbTask.IsCompleted);
-
-        if (dbTask.Exception != null)
-        {
-            var result = Result.Failure(
-                new Error("Database.Exception", dbTask.Exception.Message)
-            );
-
-            action?.Invoke(result);
-        }
-        else
-        {
-            var result = Result.Success();
-            action?.Invoke(result);
-        }
-    }
-
-    private IEnumerator UpdateScore(int score, Action<Result> action)
-    {
-        var dbTask = _dbReference.Child("Users").Child(_auth.CurrentUser.UserId).Child("Score").SetValueAsync(score);
-
-        yield return new WaitUntil(() => dbTask.IsCompleted);
-
-        if (dbTask.Exception != null)
-        {
-            var result = Result.Failure(
-                new Error("Database.Exception", dbTask.Exception.Message)
-            );
-
-            action?.Invoke(result);
-        }
-        else
-        {
-            var result = Result.Success();
-            action?.Invoke(result);
-        }
+        StartCoroutine(GetDeviceCoroutine(tempKey, action));
     }
 
     private IEnumerator RegisterOrLoginCoroutine(User user, Action<Result> action)
@@ -288,7 +173,7 @@ public class FirebaseRepository : MonoBehaviour
         yield return new WaitUntil(() => dbTask.IsCompleted);
     }
 
-    private IEnumerator GetUserDevicesCoroutine(Action<List<DeviceModel>> action)
+    public IEnumerator GetUserDevicesCoroutine(Action<List<DeviceModel>> action)
     {
         var dbTask = _dbReference.Child("Users").Child(_auth.CurrentUser.UserId).Child("Devices").GetValueAsync();
 
@@ -296,7 +181,7 @@ public class FirebaseRepository : MonoBehaviour
 
         DataSnapshot snapshot = dbTask.Result;
 
-        PlayerPrefsRepository.TryGetDeviceIdKey(out string devideId);
+        PlayerPrefsRepository.TryGetDeviceIdKey(out string deviceId);
 
         List<DeviceModel> deviceModels = snapshot.Children
             .Select(item =>
@@ -305,11 +190,67 @@ public class FirebaseRepository : MonoBehaviour
                 {
                     Id = item.Key.ToString(),
                     Name = item.Value.ToString(),
-                    IsCurrentDevice = devideId == item.Key.ToString()
+                    IsCurrentDevice = deviceId == item.Key.ToString()
                 };
             })
             .ToList();
 
         action?.Invoke(deviceModels);
+    }
+
+    public IEnumerator RenameDeviceCoroutine(string deviceId, string deviceName)
+    {
+        var dbTask = _dbReference.Child("Users").Child(_auth.CurrentUser.UserId).Child("Devices").Child(deviceId).SetValueAsync(deviceName);
+
+        yield return new WaitUntil(() => dbTask.IsCompleted);
+    }
+
+    public IEnumerator GetDeviceCoroutine(string tempKey, Action<Result<DeviceModel>> action)
+    {
+        var dbTask = _dbReference.Child("Devices").GetValueAsync();
+
+        yield return new WaitUntil(() => dbTask.IsCompleted);
+
+        PlayerPrefsRepository.TryGetDeviceIdKey(out string deviceId);
+
+        DataSnapshot snapshot = dbTask.Result;
+
+        DeviceModel deviceModel = snapshot.Children
+            .Where(item => item.HasChild("TempKey") && item.Child("TempKey").Value.ToString() == tempKey)
+            .Select(item =>
+            {
+                return new DeviceModel()
+                {
+                    Id = item.Key.ToString(),
+                    IsCurrentDevice = deviceId == item.Key.ToString(),
+                    LastUpdated = DateTime.ParseExact(item.Child("Enabled").Value.ToString(), "M.d.yyyy HH:mm:ss", CultureInfo.InvariantCulture)
+                };
+            })
+            .FirstOrDefault();
+
+        if (deviceModel == null)
+        {
+            action?.Invoke(Result.Failure<DeviceModel>(Error.NullValue));
+            yield break;
+        }
+
+        DateTime now = DateTime.UtcNow;
+        Action<DateTime> dateTimeAction = (value) =>
+        {
+            now = value;
+        };
+
+        yield return DateComparer.GetCurrentDateAndTime(dateTimeAction);
+
+        TimeSpan difference = now - deviceModel.LastUpdated;
+
+        if (difference.TotalSeconds > Constants.FirebaseConstants.DeviceEnabledTime)
+        {
+            action?.Invoke(Result.Failure<DeviceModel>(Error.NullValue));
+        }
+        else
+        {
+            action?.Invoke(deviceModel);
+        }
     }
 }

@@ -20,6 +20,7 @@ public class Connector : MonoBehaviour
         _udpController.GetModel();
 
         Listen(_cancellationTokenSource);
+        SendKeys(_cancellationTokenSource);
     }
 
     private async Task Listen(CancellationTokenSource cancellationToken)
@@ -41,6 +42,14 @@ public class Connector : MonoBehaviour
             }
 
             Debug.Log(1 / (Time.time - time));
+        }
+    }
+
+    private async Task SendKeys(CancellationTokenSource cancellationToken)
+    {
+        while (true)
+        {
+
         }
     }
 }

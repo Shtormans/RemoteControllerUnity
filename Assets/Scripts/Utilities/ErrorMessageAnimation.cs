@@ -1,22 +1,25 @@
 using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class ErrorMessageAnimation : MonoBehaviour
 {
     [SerializeField] private Image _image;
+    [SerializeField] private TextMeshProUGUI _text;
 
     [ContextMenu("ShowErrorMessage")]
-    public void ShowErrorMessage()
+    public void ShowErrorMessage(string message)
     {
-        _image.DOFillAmount(1, 0.7f).SetEase(Ease.Linear);
+        _text.text = message;
+        _image.DOFillAmount(1, 0.2f).SetEase(Ease.Linear);
     }
 
     [ContextMenu("HideErrorMessage")]
     public void HideErrorMessage()
     {
-        _image.DOFillAmount(0, 0.7f).SetEase(Ease.Linear);
+        _image.DOFillAmount(0, 0.2f).SetEase(Ease.Linear);
     }
 }

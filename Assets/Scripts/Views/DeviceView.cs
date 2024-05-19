@@ -18,6 +18,7 @@ public class DeviceModel
     public string Id;
     public string Name;
     public bool IsCurrentDevice;
+    public DateTime LastUpdated;
 }
 
 public class DeviceView : MonoBehaviour
@@ -32,13 +33,17 @@ public class DeviceView : MonoBehaviour
     private DeviceStatus _status;
 
     private DatabaseReference _dbReference;
+    private UdpController _udpController;
+
+    public string Id => _id;
+    public string Name => _name;
 
     private void Awake()
     {
         _dbReference = FirebaseDatabase.DefaultInstance.RootReference;
     }
 
-    public void Init(DeviceModel deviceModel)
+    public void Init(DeviceModel deviceModel, UdpController udpController)
     {
         _id = deviceModel.Id;
         _name = deviceModel.Name;
@@ -60,10 +65,31 @@ public class DeviceView : MonoBehaviour
         }
     }
 
+    public void SetName(string newName)
+    {
+        _name = newName;
+        _nameText.text = _name;
+    }
+
     public void SendShutodownCommand()
     {
-        Debug.LogError("Here");
         StartCoroutine(SendCommand(DeviceCommandHandler.ShutdownCommand));
+    }
+
+    public void SendConnectAsReceiverCommand()
+    {
+        var model = _udpController.GetModel();
+        string command = DeviceCommandHandler.CreateConnectAsReceiverCommand(model.Ip, model.Port);
+
+        StartCoroutine(SendCommand(command));
+    }
+
+    public void SendConnectAsControllerCommand()
+    {
+        var model = _udpController.GetModel();
+        string command = DeviceCommandHandler.CreateConnectAsControllerCommand(model.Ip, model.Port);
+
+        StartCoroutine(SendCommand(command));
     }
 
     private void ChangeViewStatus(DeviceStatus deviceStatus)
@@ -117,8 +143,15 @@ public class DeviceView : MonoBehaviour
         DataSnapshot result = dbTask.Result;
         DateTime lastSeenTime = DateTime.ParseExact(result.GetValue(false).ToString(), "M.d.yyyy HH:mm:ss", CultureInfo.InvariantCulture);
 
+        DateTime now = DateTime.UtcNow;
+        Action<DateTime> action = (value) =>
+        {
+            now = value;
+        };
 
-        TimeSpan difference = DateTime.UtcNow - lastSeenTime;
+        yield return DateComparer.GetCurrentDateAndTime(action);
+
+        TimeSpan difference = now - lastSeenTime;
 
         if (difference.TotalSeconds > Constants.FirebaseConstants.DeviceEnabledTime)
         {
@@ -139,7 +172,15 @@ public class DeviceView : MonoBehaviour
 
     private IEnumerator UpdateLastSeenTime()
     {
-        var dbTask = _dbReference.Child("Devices").Child(_id).Child("Enabled").SetValueAsync(DateTime.UtcNow.ToString("M.d.yyyy HH:mm:ss"));
+        DateTime now = DateTime.UtcNow;
+        Action<DateTime> action = (value) =>
+        {
+            now = value;
+        };
+
+        yield return DateComparer.GetCurrentDateAndTime(action);
+
+        var dbTask = _dbReference.Child("Devices").Child(_id).Child("Enabled").SetValueAsync(now.ToString("M.d.yyyy HH:mm:ss"));
 
         yield return new WaitUntil(() => dbTask.IsCompleted);
     }
@@ -169,5 +210,10 @@ public class DeviceView : MonoBehaviour
         var dbTask = _dbReference.Child("Devices").Child(_id).Child("Command").SetValueAsync(command);
 
         yield return new WaitUntil(() => dbTask.IsCompleted);
+    }
+
+    public void RenameDevice()
+    {
+        PopupManager.RenameDevice.Init(Id, Name);
     }
 }

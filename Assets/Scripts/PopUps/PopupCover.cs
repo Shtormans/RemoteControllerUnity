@@ -15,12 +15,12 @@ public class PopupCover : MonoBehaviour, IPointerClickHandler
     public void Disable() 
     { 
         gameObject.SetActive(false);
+        _hideObject?.SetActive(false);
         _hideObject = null;
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        gameObject.SetActive(false);
-        _hideObject?.SetActive(false);
+        Disable();
     }
 }
