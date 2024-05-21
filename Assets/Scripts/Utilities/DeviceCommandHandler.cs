@@ -11,9 +11,9 @@ public static class DeviceCommandHandler
         return $"{ConnectAsControllerCommand} {ip}:{port}";
     }
 
-    public static string CreateConnectAsReceiverCommand(string ip, int port)
+    public static string CreateConnectAsReceiverCommand(string ip, int port, string mainDeviceId)
     {
-        return $"{ConnectAsReceiverCommand} {ip}:{port}";
+        return $"{ConnectAsReceiverCommand} {ip}:{port} {mainDeviceId}";
     }
 
     public static void Handle(string command)
@@ -23,6 +23,29 @@ public static class DeviceCommandHandler
         if (commandPart == ShutdownCommand)
         {
             OpenCalculator();
+        }
+        else if (commandPart == ConnectAsControllerCommand)
+        {
+            string[] config = command.Split(' ')[1].Split(':');
+            string ip = config[0];
+            int port = int.Parse(config[1]);
+
+            Connector.Instance.StartConnectionAsController(ip, port);
+        }
+        else if (commandPart == ConnectAsReceiverCommand)
+        {
+            string[] config = command.Split(' ')[1].Split(':');
+            string ip = config[0];
+            int port = int.Parse(config[1]);
+
+            string deviceId = command.Split(' ')[2];
+
+            UdpModel udpModel = Connector.Instance.UdpController.GetModel();
+
+            string senderCommand = CreateConnectAsControllerCommand(udpModel.Ip, udpModel.Port);
+            FirebaseRepository.Instance.SendCommand(senderCommand, deviceId);
+
+            Connector.Instance.StartConnectionAsReceiver(ip, port);
         }
     }
 

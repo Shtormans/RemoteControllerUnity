@@ -6,11 +6,14 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.XR;
 
 public class UdpController : MonoBehaviour
 {
     private UdpModel _receiver;
-    private UdpClient _udpClient;
+    private UdpModel _sender;
+    private UdpClient _udpReceiverClient;
+    private UdpClient _udpSenderClient;
 
     static int[] ports = new int[]
     {
@@ -35,27 +38,63 @@ public class UdpController : MonoBehaviour
     {
         UdpModel model = new();
 
-        _udpClient = GetUDPClientFromPorts(out string localIp, out int localPort, out string externalIp, out int externalPort);
+        _udpReceiverClient?.Close();
+        _udpSenderClient?.Close();
 
-        model.Ip = localIp;
-        model.Port = localPort;
+        _udpReceiverClient = GetUDPClientFromPorts(out string localReceiverIp, out int localReceiverPort, out string externalReceiverIp, out int externalReceiverPort);
+        _udpSenderClient = GetUDPClientFromPorts(out string localSenderIp, out int localSenderPort, out string externalSenderIp, out int externalSenderPort);
+
+        model.Ip = localReceiverIp;
+        model.Port = localReceiverPort;
 
         return model;
     }
 
-    public void EstablishConnection(UdpModel receiver)
+    private void OnDisable()
     {
-        _receiver = receiver;
+        ClosePorts();
     }
 
-    public void SendImage()
+    public void ClosePorts()
     {
+        _udpReceiverClient.Close();
+        _udpSenderClient.Close();
+    }
 
+    public async Task SendImage(byte[] bytes, UdpModel other)
+    {
+        const int chunkSize = 65000;
+        int chunks = bytes.Length / chunkSize;
+
+        int remainder = bytes.Length % chunkSize;
+
+        byte[] initialSend = new byte[5];
+        initialSend[0] = (byte)(chunks + (remainder != 0 ? 1 : 0));
+
+        Array.Copy(BitConverter.GetBytes(bytes.Length), 0, initialSend, 1, 4);
+
+        await _udpSenderClient.SendAsync(initialSend, initialSend.Length, other.Ip, other.Port);
+
+        byte[] chunk = new byte[chunkSize + 1];
+        chunk[0] = 3;
+        for (int i = 0; i < chunks; i++)
+        {
+            Array.Copy(bytes, chunkSize * i, chunk, 1, chunkSize);
+
+            await _udpSenderClient.SendAsync(chunk, chunkSize + 1, other.Ip, other.Port);
+        }
+
+        if (remainder != 0)
+        {
+            Array.Copy(bytes, chunkSize * chunks, chunk, 1, remainder);
+
+            await _udpSenderClient.SendAsync(chunk, remainder + 1, other.Ip, other.Port);
+        }
     }
 
     public async Task<Sprite> ReceiveImage()
     {
-        Byte[] receiveBytes = (await _udpClient.ReceiveAsync()).Buffer;
+        Byte[] receiveBytes = (await _udpReceiverClient.ReceiveAsync()).Buffer;
         if (receiveBytes.Length != 5)
         {
             return null;
@@ -72,7 +111,7 @@ public class UdpController : MonoBehaviour
         {
             for (int i = 0; i < chunks; i++)
             {
-                receiveBytes = (await _udpClient.ReceiveAsync()).Buffer;
+                receiveBytes = (await _udpReceiverClient.ReceiveAsync()).Buffer;
                 if (receiveBytes[0] != 3)
                 {
                     return null;
@@ -113,9 +152,8 @@ public class UdpController : MonoBehaviour
             {
                 // You can alternatively test tcp with  nc -vz externalip 5293 in linux and
                 // udp with  nc -vz -u externalip 5293 in linux
-                Socket tempServer = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                tempServer.Bind(new IPEndPoint(localAddr, ports[i]));
-                tempServer.Close();
+                UdpClient testUdpClient = new UdpClient(ports[i]);
+                testUdpClient.Close();
                 workingPort = ports[i];
                 break;
             }

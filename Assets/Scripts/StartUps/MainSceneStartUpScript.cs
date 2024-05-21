@@ -14,9 +14,12 @@ public class MainSceneStartUpScript : MonoBehaviour
     [SerializeField] private TMP_InputField _passwordText;
     [SerializeField] private DeviceView _prefab;
     [SerializeField] private GridLayoutGroup _devicesParent;
+    [SerializeField] private UdpController _udpController;
 
     private int _devicesAmount;
     private List<DeviceView> _deviceViews = new();
+
+    public string MainDeviceId { get; private set; }
 
     private void Start()
     {
@@ -55,7 +58,12 @@ public class MainSceneStartUpScript : MonoBehaviour
         foreach (DeviceModel model in deviceModels)
         {
             DeviceView deviceView = Instantiate(_prefab, _devicesParent.transform);
-            deviceView.Init(model);
+            deviceView.Init(model, _udpController, this);
+
+            if (model.IsCurrentDevice)
+            {
+                MainDeviceId = model.Id;
+            }
 
             _deviceViews.Add(deviceView);
         }
@@ -78,7 +86,7 @@ public class MainSceneStartUpScript : MonoBehaviour
     {
         _devicesAmount = devices.Count;
 
-        if (devices.Count == _devicesAmount)
+        if (_deviceViews.Count == _devicesAmount)
         {
             foreach(DeviceModel model in devices)
             {
@@ -98,7 +106,7 @@ public class MainSceneStartUpScript : MonoBehaviour
             DeviceModel newModel = devices.First(model => _deviceViews.Count(view => view.Id == model.Id) == 0);
 
             DeviceView deviceView = Instantiate(_prefab, _devicesParent.transform);
-            deviceView.Init(newModel);
+            deviceView.Init(newModel, _udpController, this);
 
             _deviceViews.Add(deviceView);
 

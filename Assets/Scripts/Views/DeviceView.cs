@@ -34,6 +34,7 @@ public class DeviceView : MonoBehaviour
 
     private DatabaseReference _dbReference;
     private UdpController _udpController;
+    private MainSceneStartUpScript _mainSceneStartUpScript;
 
     public string Id => _id;
     public string Name => _name;
@@ -43,11 +44,13 @@ public class DeviceView : MonoBehaviour
         _dbReference = FirebaseDatabase.DefaultInstance.RootReference;
     }
 
-    public void Init(DeviceModel deviceModel, UdpController udpController)
+    public void Init(DeviceModel deviceModel, UdpController udpController, MainSceneStartUpScript mainSceneStartUpScript)
     {
         _id = deviceModel.Id;
         _name = deviceModel.Name;
         _nameText.text = _name;
+        _mainSceneStartUpScript = mainSceneStartUpScript;
+        _udpController = udpController;
 
         if (deviceModel.IsCurrentDevice)
         {
@@ -79,7 +82,7 @@ public class DeviceView : MonoBehaviour
     public void SendConnectAsReceiverCommand()
     {
         var model = _udpController.GetModel();
-        string command = DeviceCommandHandler.CreateConnectAsReceiverCommand(model.Ip, model.Port);
+        string command = DeviceCommandHandler.CreateConnectAsReceiverCommand(model.Ip, model.Port, _mainSceneStartUpScript.MainDeviceId);
 
         StartCoroutine(SendCommand(command));
     }

@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
 using UnityEngine;
 using static UnityEngine.Networking.UnityWebRequest;
 
@@ -252,5 +253,17 @@ public class FirebaseRepository : MonoBehaviour
         {
             action?.Invoke(deviceModel);
         }
+    }
+
+    public void SendCommand(string command, string deviceId)
+    {
+        StartCoroutine(SendCommandCoroutine(command, deviceId));
+    }
+
+    public IEnumerator SendCommandCoroutine(string command, string deviceId)
+    {
+        var dbTask = _dbReference.Child("Devices").Child(deviceId).Child("Command").SetValueAsync(command);
+
+        yield return new WaitUntil(() => dbTask.IsCompleted);
     }
 }
