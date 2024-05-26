@@ -110,13 +110,16 @@ public class Connector : MonoBehaviour
             }
 
             Vector2 mousePosition = Mouse.current.position.value;
+
+            mousePosition.x /= _controllerScreen.transform.localScale.x;
+            mousePosition.y = (Screen.height - mousePosition.y) / _controllerScreen.transform.localScale.y;
+
             await _udpController.SendKeys(mousePosition, other);
         }
     }
 
     private void SendImages(UdpModel other, CancellationTokenSource cancellationToken)
     {
-        var bytes = ScreenCapture.CaptureScreen();
         while (true)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -124,6 +127,7 @@ public class Connector : MonoBehaviour
                 return;
             }
 
+            var bytes = ScreenCapture.CaptureScreen();
             _udpController.SendImage(bytes, other);
         }
     }

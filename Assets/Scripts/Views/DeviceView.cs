@@ -144,7 +144,18 @@ public class DeviceView : MonoBehaviour
         yield return new WaitUntil(() => dbTask.IsCompleted);
 
         DataSnapshot result = dbTask.Result;
-        DateTime lastSeenTime = DateTime.ParseExact(result.GetValue(false).ToString(), "M.d.yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+        DateTime lastSeenTime = DateTime.UtcNow;
+
+        try
+        {
+            lastSeenTime = DateTime.ParseExact(result.GetValue(false).ToString(), "M.d.yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Can't parse: {result.GetValue(false)} to \"M.d.yyyy HH: mm:ss\" format");
+
+            yield break;
+        }
 
         DateTime now = DateTime.UtcNow;
         Action<DateTime> action = (value) =>

@@ -84,8 +84,8 @@ public class UdpController : MonoBehaviour
         byte[] bytes = new byte[sizeof(int) * 2 + 2];
 
         bytes[0] = 3;
-        Array.Copy(BitConverter.GetBytes(mousePosition.x), 0, bytes, 1, sizeof(int));
-        Array.Copy(BitConverter.GetBytes(mousePosition.y), 0, bytes, sizeof(int) + 1, sizeof(int));
+        Array.Copy(BitConverter.GetBytes((int)mousePosition.x), 0, bytes, 1, sizeof(int));
+        Array.Copy(BitConverter.GetBytes((int)mousePosition.y), 0, bytes, sizeof(int) + 1, sizeof(int));
 
         bytes[^1] = leftMousePressedStatus;
 
@@ -161,48 +161,56 @@ public class UdpController : MonoBehaviour
 
     public async Task<Sprite> ReceiveImage()
     {
-        byte[] receiveBytes = null;
-        do
+        try
         {
-            receiveBytes = (await _udpReceiverClient.ReceiveAsync()).Buffer;
-        } while (receiveBytes.Length != 5);
-
-        int chunksAmount = receiveBytes[0];
-        int bufferSize = BitConverter.ToInt32(receiveBytes, 1);
-
-        byte[][] chunks = new byte[chunksAmount][];
-
-        for (int i = 0; i < chunksAmount; i++)
-        {
-            receiveBytes = (await _udpReceiverClient.ReceiveAsync()).Buffer;
-            chunks[i] = receiveBytes;
-        }
-
-
-        byte[] buffer = new byte[bufferSize];
-
-        int index = 0;
-        for (int i = 0; i < chunksAmount; i++)
-        {
-            receiveBytes = chunks[i];
-
-            int chunkSize = BitConverter.ToInt32(receiveBytes, 0);
-            if (receiveBytes.Length != chunkSize)
+            byte[] receiveBytes = null;
+            do
             {
-                return null;
+                receiveBytes = (await _udpReceiverClient.ReceiveAsync()).Buffer;
+            } while (receiveBytes.Length != 5);
+
+            int chunksAmount = receiveBytes[0];
+            int bufferSize = BitConverter.ToInt32(receiveBytes, 1);
+
+            byte[][] chunks = new byte[chunksAmount][];
+
+            for (int i = 0; i < chunksAmount; i++)
+            {
+                receiveBytes = (await _udpReceiverClient.ReceiveAsync()).Buffer;
+                chunks[i] = receiveBytes;
             }
 
-            Array.Copy(receiveBytes, sizeof(int), buffer, index, receiveBytes.Length - sizeof(int));
-            index += receiveBytes.Length - sizeof(int);
+
+            byte[] buffer = new byte[bufferSize];
+
+            int index = 0;
+            for (int i = 0; i < chunksAmount; i++)
+            {
+                receiveBytes = chunks[i];
+
+                int chunkSize = BitConverter.ToInt32(receiveBytes, 0);
+                if (receiveBytes.Length != chunkSize)
+                {
+                    return null;
+                }
+
+                Array.Copy(receiveBytes, sizeof(int), buffer, index, receiveBytes.Length - sizeof(int));
+                index += receiveBytes.Length - sizeof(int);
+            }
+
+            Texture2D spriteTexture = new Texture2D(2, 2);
+            spriteTexture.LoadImage(buffer);
+
+            Rect rect = new(0, 0, spriteTexture.width, spriteTexture.height);
+            Sprite sprite = Sprite.Create(spriteTexture, rect, Vector2.zero, 100);
+
+            return sprite;
         }
-
-        Texture2D spriteTexture = new Texture2D(2, 2);
-        spriteTexture.LoadImage(buffer);
-
-        Rect rect = new(0, 0, spriteTexture.width, spriteTexture.height);
-        Sprite sprite = Sprite.Create(spriteTexture, rect, Vector2.zero, 100);
-
-        return sprite;
+        catch (Exception ex)
+        {
+            int i = 0;
+            return null;
+        }
     }
 
     static UdpClient GetUDPClientFromPorts(out string localIp, out int localPort, out string externalIp, out int externalPort)

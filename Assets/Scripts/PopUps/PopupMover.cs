@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 public class PopupMover : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDragHandler
 {
@@ -9,7 +10,7 @@ public class PopupMover : MonoBehaviour, IPointerDownHandler, IPointerUpHandler,
 
     public void OnDrag(PointerEventData eventData)
     {
-        Vector2 mousePosition = Input.mousePosition;
+        Vector2 mousePosition = Mouse.current.position.value;
         if (mousePosition.x < _blindZone || Screen.width - mousePosition.x < _blindZone)
         {
             return;

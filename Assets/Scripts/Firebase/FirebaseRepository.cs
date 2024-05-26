@@ -7,9 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Security.Cryptography;
 using UnityEngine;
-using static UnityEngine.Networking.UnityWebRequest;
 
 public class FirebaseRepository : MonoBehaviour
 {
