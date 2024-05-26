@@ -1,12 +1,11 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.XR;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Utilities;
+using UnityEngine.InputSystem.LowLevel;
+using System;
 
 public class Connector : MonoBehaviour
 {
@@ -52,8 +51,8 @@ public class Connector : MonoBehaviour
 
         StartScreenAsSender();
 
-        ListenForImages(_cancellationTokenSource);
         SendKeys(other, _cancellationTokenSource);
+        ListenForImages(_cancellationTokenSource);
     }
 
     public void StartConnectionAsReceiver(string ip, int port)
@@ -66,8 +65,17 @@ public class Connector : MonoBehaviour
 
         _cancellationTokenSource = new();
 
-        SendImages(other, _cancellationTokenSource);
-        ReceiveKeys(_cancellationTokenSource);
+        new Thread(() =>
+        {
+            Thread.CurrentThread.IsBackground = true;
+            SendImages(other, _cancellationTokenSource);
+        }).Start();
+
+        new Thread(() =>
+        {
+            Thread.CurrentThread.IsBackground = true;
+            ReceiveKeys(_cancellationTokenSource);
+        }).Start();
     }
 
     private async Task ListenForImages(CancellationTokenSource cancellationToken)
@@ -88,15 +96,11 @@ public class Connector : MonoBehaviour
                 _screen.sprite = sprite;
             }
 
-            Debug.Log(1 / (Time.time - time));
+            Debug.LogError(1 / (Time.time - time));
         }
     }
 
     private async Task SendKeys(UdpModel other, CancellationTokenSource cancellationToken)
-    {
-    }
-
-    private async Task SendImages(UdpModel other, CancellationTokenSource cancellationToken)
     {
         while (true)
         {
@@ -105,14 +109,35 @@ public class Connector : MonoBehaviour
                 return;
             }
 
-            var bytes = ScreenCapture.CaptureScreen();
-            await _udpController.SendImage(bytes, other);
+            Vector2 mousePosition = Mouse.current.position.value;
+            await _udpController.SendKeys(mousePosition, other);
         }
-
     }
 
-    private async Task ReceiveKeys(CancellationTokenSource cancellationTokenSource)
+    private void SendImages(UdpModel other, CancellationTokenSource cancellationToken)
     {
+        var bytes = ScreenCapture.CaptureScreen();
+        while (true)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
 
+            _udpController.SendImage(bytes, other);
+        }
+    }
+
+    private void ReceiveKeys(CancellationTokenSource cancellationToken)
+    {
+        while (true)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            _udpController.ReceiveKeys();
+        }
     }
 }

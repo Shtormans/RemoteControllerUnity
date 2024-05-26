@@ -43,7 +43,7 @@ public class MainSceneStartUpScript : MonoBehaviour
         SetTempKey();
 
         FirebaseRepository.Instance.GetUserDevices(GenerateDevices);
-    }    
+    }
 
     private void SetTempKey()
     {
@@ -58,17 +58,20 @@ public class MainSceneStartUpScript : MonoBehaviour
         foreach (DeviceModel model in deviceModels)
         {
             DeviceView deviceView = Instantiate(_prefab, _devicesParent.transform);
-            deviceView.Init(model, _udpController, this);
 
             if (model.IsCurrentDevice)
             {
                 MainDeviceId = model.Id;
+                FirebaseRepository.Instance.SendCommand("", MainDeviceId);
             }
 
+            deviceView.Init(model, _udpController, this);
             _deviceViews.Add(deviceView);
         }
 
         _devicesAmount = deviceModels.Count;
+
+
         StartCoroutine(CheckForDevicesUpdate());
     }
 
@@ -88,7 +91,7 @@ public class MainSceneStartUpScript : MonoBehaviour
 
         if (_deviceViews.Count == _devicesAmount)
         {
-            foreach(DeviceModel model in devices)
+            foreach (DeviceModel model in devices)
             {
                 DeviceView view = _deviceViews.First(view => view.Id == model.Id);
 
