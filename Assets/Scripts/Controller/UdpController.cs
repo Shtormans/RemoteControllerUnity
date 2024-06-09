@@ -44,14 +44,6 @@ public class UdpController : MonoBehaviour
 
     public UdpModel GetModel()
     {
-        if (_udpReceiverClient != null)
-        {
-            return _receiver;
-        }
-
-        _udpReceiverClient?.Close();
-        _udpSenderClient?.Close();
-
         _udpReceiverClient = GetUDPClientFromPorts(out string localReceiverIp, out int localReceiverPort, out string externalReceiverIp, out int externalReceiverPort);
         _receiver = new UdpModel()
         {
@@ -71,7 +63,7 @@ public class UdpController : MonoBehaviour
 
     private void OnDisable()
     {
-        ClosePorts();
+        //ClosePorts();
     }
 
     public void ClosePorts()
