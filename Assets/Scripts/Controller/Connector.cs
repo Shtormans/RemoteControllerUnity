@@ -21,6 +21,8 @@ public class Connector : MonoBehaviour
 
     public static Connector Instance { get; private set; }
 
+    private static Mutex _mutex = new();
+
     private void Awake()
     {
         Instance = this;
@@ -40,13 +42,13 @@ public class Connector : MonoBehaviour
 
     private byte[] GetSetBytes(byte[] buffer, bool set)
     {
-        Mutex mutex = new();
+        _mutex.WaitOne();
 
         if (set)
         {
             _buffer = buffer;
 
-            mutex.ReleaseMutex();
+            _mutex.ReleaseMutex();
 
             return null;
         }
@@ -55,7 +57,7 @@ public class Connector : MonoBehaviour
             byte[] temp = _buffer;
             _buffer = null;
 
-            mutex.ReleaseMutex();
+            _mutex.ReleaseMutex();
 
             return temp;
         }

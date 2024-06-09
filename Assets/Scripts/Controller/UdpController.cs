@@ -44,18 +44,29 @@ public class UdpController : MonoBehaviour
 
     public UdpModel GetModel()
     {
-        UdpModel model = new();
+        if (_udpReceiverClient != null)
+        {
+            return _receiver;
+        }
 
         _udpReceiverClient?.Close();
         _udpSenderClient?.Close();
 
         _udpReceiverClient = GetUDPClientFromPorts(out string localReceiverIp, out int localReceiverPort, out string externalReceiverIp, out int externalReceiverPort);
+        _receiver = new UdpModel()
+        {
+            Ip = localReceiverIp,
+            Port = localReceiverPort
+        };
+
         _udpSenderClient = GetUDPClientFromPorts(out string localSenderIp, out int localSenderPort, out string externalSenderIp, out int externalSenderPort);
+        _sender = new()
+        {
+            Ip = localSenderIp,
+            Port = localSenderPort
+        };
 
-        model.Ip = localReceiverIp;
-        model.Port = localReceiverPort;
-
-        return model;
+        return _receiver;
     }
 
     private void OnDisable()
@@ -67,6 +78,9 @@ public class UdpController : MonoBehaviour
     {
         _udpReceiverClient.Close();
         _udpSenderClient.Close();
+
+        _udpReceiverClient = null;
+        _udpSenderClient = null;
     }
 
     public async Task SendKeys(Vector2 mousePosition, UdpModel other)
