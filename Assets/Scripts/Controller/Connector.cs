@@ -1,11 +1,11 @@
+using System;
+using System.Collections;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Utilities;
-using UnityEngine.InputSystem.LowLevel;
-using System;
+using UnityEngine.UI;
 
 public class Connector : MonoBehaviour
 {
@@ -15,6 +15,7 @@ public class Connector : MonoBehaviour
     [SerializeField] private Image _screen;
 
     private CancellationTokenSource _cancellationTokenSource = new();
+    private bool _isReceiver = false;
 
     public UdpController UdpController => _udpController;
 
@@ -25,7 +26,42 @@ public class Connector : MonoBehaviour
         Instance = this;
     }
 
-    private void StartScreenAsSender()
+    private void OnDisable()
+    {
+        _cancellationTokenSource?.Cancel();
+    }
+
+    private void OnApplicationQuit()
+    {
+        _cancellationTokenSource?.Cancel();
+    }
+
+    private byte[] _buffer;
+
+    private byte[] GetSetBytes(byte[] buffer, bool set)
+    {
+        Mutex mutex = new();
+
+        if (set)
+        {
+            _buffer = buffer;
+
+            mutex.ReleaseMutex();
+
+            return null;
+        }
+        else
+        {
+            byte[] temp = _buffer;
+            _buffer = null;
+
+            mutex.ReleaseMutex();
+
+            return temp;
+        }
+    }
+
+    private void StartScreen()
     {
         _mainScreen.gameObject.SetActive(false);
         _controllerScreen.gameObject.SetActive(true);
@@ -36,6 +72,7 @@ public class Connector : MonoBehaviour
         _mainScreen.gameObject.SetActive(true);
         _controllerScreen.gameObject.SetActive(false);
 
+        _isReceiver = false;
         _cancellationTokenSource.Cancel();
     }
 
@@ -49,10 +86,16 @@ public class Connector : MonoBehaviour
 
         _cancellationTokenSource = new();
 
-        StartScreenAsSender();
+        StartScreen();
 
         SendKeys(other, _cancellationTokenSource);
-        ListenForImages(_cancellationTokenSource);
+        new Thread(() =>
+        {
+            Thread.CurrentThread.IsBackground = true;
+            ListenForImages(_cancellationTokenSource);
+        }).Start();
+
+        StartCoroutine(ConstructImages(_cancellationTokenSource));
     }
 
     public void StartConnectionAsReceiver(string ip, int port)
@@ -63,13 +106,18 @@ public class Connector : MonoBehaviour
             Port = port
         };
 
+        _isReceiver = true;
         _cancellationTokenSource = new();
+
+        StartScreen();
 
         new Thread(() =>
         {
             Thread.CurrentThread.IsBackground = true;
             SendImages(other, _cancellationTokenSource);
         }).Start();
+
+        _lastReceivedKeysTime = DateTime.UtcNow;
 
         new Thread(() =>
         {
@@ -78,8 +126,39 @@ public class Connector : MonoBehaviour
         }).Start();
     }
 
-    private async Task ListenForImages(CancellationTokenSource cancellationToken)
+    private DateTime _lastReceivedKeysTime;
+
+    private IEnumerator ConstructImages(CancellationTokenSource cancellationToken)
     {
+        while (true)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                yield break;
+            }
+
+            DateTime time = DateTime.Now;
+
+            byte[] buffer = GetSetBytes(null, false);
+            if (buffer != null)
+            {
+                Texture2D spriteTexture = new Texture2D(2, 2);
+                spriteTexture.LoadImage(buffer);
+
+                Rect rect = new(0, 0, spriteTexture.width, spriteTexture.height);
+                Sprite sprite = Sprite.Create(spriteTexture, rect, Vector2.zero, 100);
+
+                _screen.sprite = sprite;
+            }
+
+            yield return null;
+        }
+    }
+
+    private void ListenForImages(CancellationTokenSource cancellationToken)
+    {
+        int picturesAmount = 0;
+
         while (true)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -87,16 +166,7 @@ public class Connector : MonoBehaviour
                 return;
             }
 
-            float time = Time.time;
-
-            Sprite sprite = await _udpController.ReceiveImage();
-
-            if (sprite != null)
-            {
-                _screen.sprite = sprite;
-            }
-
-            Debug.LogError(1 / (Time.time - time));
+            GetSetBytes(_udpController.ReceiveImage(), true);
         }
     }
 
@@ -109,12 +179,19 @@ public class Connector : MonoBehaviour
                 return;
             }
 
-            Vector2 mousePosition = Mouse.current.position.value;
+            if (_screen.sprite != null)
+            {
+                Vector2 mousePosition = Mouse.current.position.value;
 
-            mousePosition.x /= _controllerScreen.transform.localScale.x;
-            mousePosition.y = (Screen.height - mousePosition.y) / _controllerScreen.transform.localScale.y;
+                mousePosition.x /= _controllerScreen.transform.localScale.x * _screen.rectTransform.rect.width / _screen.mainTexture.width;
+                mousePosition.y = (Screen.height - mousePosition.y) / _controllerScreen.transform.localScale.y * _screen.rectTransform.rect.height / _screen.mainTexture.height;
 
-            await _udpController.SendKeys(mousePosition, other);
+                await _udpController.SendKeys(mousePosition, other);
+            }
+            else
+            {
+                await Task.Yield();
+            }
         }
     }
 
@@ -142,6 +219,16 @@ public class Connector : MonoBehaviour
             }
 
             _udpController.ReceiveKeys();
+
+            _lastReceivedKeysTime = DateTime.UtcNow;
+        }
+    }
+
+    private void Update()
+    {
+        if (_isReceiver && (DateTime.UtcNow - _lastReceivedKeysTime).TotalSeconds > 5)
+        {
+            Exit();
         }
     }
 }

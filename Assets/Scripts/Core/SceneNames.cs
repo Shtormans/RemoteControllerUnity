@@ -5,4 +5,5 @@ public static class SceneNames
 {
     public const string MainMenu = "RegistrationScene";
     public const string MainGame = "MainScene";
+    public const string InfoScene = "InfoScene";
 }

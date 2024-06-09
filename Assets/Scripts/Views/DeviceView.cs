@@ -32,6 +32,9 @@ public class DeviceView : MonoBehaviour
     private string _name;
     private DeviceStatus _status;
 
+    private bool _isSet = false;
+    private bool _isCurrentDevice = false;
+
     private DatabaseReference _dbReference;
     private UdpController _udpController;
     private MainSceneStartUpScript _mainSceneStartUpScript;
@@ -52,8 +55,11 @@ public class DeviceView : MonoBehaviour
         _mainSceneStartUpScript = mainSceneStartUpScript;
         _udpController = udpController;
 
+        _isSet = true;
+
         if (deviceModel.IsCurrentDevice)
         {
+            _isCurrentDevice = true;
             _status = DeviceStatus.CurrentDevice;
             ChangeViewStatus(_status);
 
@@ -68,6 +74,27 @@ public class DeviceView : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        if (_isSet)
+        {
+            if (_isCurrentDevice)
+            {
+                _status = DeviceStatus.CurrentDevice;
+                ChangeViewStatus(_status);
+
+                StartCoroutine(CurrentDeviceStatusLoop());
+            }
+            else
+            {
+                _status = DeviceStatus.Disabled;
+                ChangeViewStatus(_status);
+
+                StartCoroutine(NotCurrentDeviceStatusLoop());
+            }
+        }
+    }
+
     public void SetName(string newName)
     {
         _name = newName;
@@ -77,6 +104,16 @@ public class DeviceView : MonoBehaviour
     public void SendShutodownCommand()
     {
         StartCoroutine(SendCommand(DeviceCommandHandler.ShutdownCommand));
+    }
+
+    public void SendRestartCommand()
+    {
+        StartCoroutine(SendCommand(DeviceCommandHandler.RestartCommand));
+    }
+
+    public void SendCloseApplicationCommand()
+    {
+        StartCoroutine(SendCommand(DeviceCommandHandler.CloseApplicationCommand));
     }
 
     public void SendConnectAsReceiverCommand()

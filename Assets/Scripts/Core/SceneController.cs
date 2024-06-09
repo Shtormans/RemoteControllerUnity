@@ -12,4 +12,9 @@ public static class SceneController
     {
         SceneManager.LoadSceneAsync(SceneNames.MainMenu);
     }
+
+    public static void ChangeSceneToInfoScene()
+    {
+        SceneManager.LoadSceneAsync(SceneNames.InfoScene);
+    }
 }

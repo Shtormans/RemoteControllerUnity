@@ -1,13 +1,13 @@
 using System;
-using System.Drawing;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.XR;
 
 public class UdpController : MonoBehaviour
 {
@@ -81,13 +81,65 @@ public class UdpController : MonoBehaviour
             leftMousePressedStatus = (byte)PressedStatus.Released;
         }
 
-        byte[] bytes = new byte[sizeof(int) * 2 + 2];
+        byte rightMousePressedStatus = (byte)PressedStatus.None;
+        if (Mouse.current.rightButton.wasPressedThisFrame)
+        {
+            rightMousePressedStatus = (byte)PressedStatus.Pressed;
+        }
+        if (Mouse.current.rightButton.wasReleasedThisFrame)
+        {
+            rightMousePressedStatus = (byte)PressedStatus.Released;
+        }
 
-        bytes[0] = 3;
-        Array.Copy(BitConverter.GetBytes((int)mousePosition.x), 0, bytes, 1, sizeof(int));
-        Array.Copy(BitConverter.GetBytes((int)mousePosition.y), 0, bytes, sizeof(int) + 1, sizeof(int));
+        byte middleMousePressedStatus = (byte)PressedStatus.None;
+        if (Mouse.current.middleButton.wasPressedThisFrame)
+        {
+            middleMousePressedStatus = (byte)PressedStatus.Pressed;
+        }
+        if (Mouse.current.middleButton.wasReleasedThisFrame)
+        {
+            middleMousePressedStatus = (byte)PressedStatus.Released;
+        }
 
-        bytes[^1] = leftMousePressedStatus;
+        byte[] bytes = new byte[sizeof(int) * 2 + 5];
+
+        Array.Copy(BitConverter.GetBytes((int)mousePosition.x), 0, bytes, 0, sizeof(int));
+        Array.Copy(BitConverter.GetBytes((int)mousePosition.y), 0, bytes, sizeof(int), sizeof(int));
+
+        bytes[sizeof(int) * 2 + 2] = leftMousePressedStatus;
+        bytes[sizeof(int) * 2 + 3] = rightMousePressedStatus;
+        bytes[sizeof(int) * 2 + 4] = middleMousePressedStatus;
+
+
+        Key keyCode = Key.None;
+        PressedStatus keyPressedStatus = PressedStatus.None;
+
+        if (Keyboard.current.anyKey.wasPressedThisFrame)
+        {
+            foreach (var key in Keyboard.current.allKeys)
+            {
+                if (key.wasPressedThisFrame)
+                {
+                    keyCode = key.keyCode;
+                    keyPressedStatus = PressedStatus.Pressed;
+                }
+            }
+        }
+
+        if (Keyboard.current.anyKey.wasReleasedThisFrame)
+        {
+            foreach (var key in Keyboard.current.allKeys)
+            {
+                if (key.wasReleasedThisFrame)
+                {
+                    keyCode = key.keyCode;
+                    keyPressedStatus = PressedStatus.Released;
+                }
+            }
+        }
+
+        Array.Copy(BitConverter.GetBytes((int)keyCode), 0, bytes, sizeof(int) * 2, sizeof(int));
+        bytes[sizeof(int) * 2 + 1] = (byte)keyPressedStatus;
 
         await _udpSenderClient.SendAsync(bytes, bytes.Length, other.Ip, other.Port);
     }
@@ -97,38 +149,62 @@ public class UdpController : MonoBehaviour
         IPEndPoint remoteIpEndPoint = new IPEndPoint(IPAddress.Any, 0);
         Byte[] receiveBytes = _udpReceiverClient.Receive(ref remoteIpEndPoint);
 
-        if (receiveBytes[0] != 3)
-        {
-            return;
-        }
-
         Vector2Int mousePosition = new()
         {
-            x = BitConverter.ToInt32(receiveBytes, 1),
-            y = BitConverter.ToInt32(receiveBytes, sizeof(int) + 1)
+            x = BitConverter.ToInt32(receiveBytes, 0),
+            y = BitConverter.ToInt32(receiveBytes, sizeof(int))
         };
-
-        Debug.Log(mousePosition);
 
         MouseImpersonator.SetCursorPos(mousePosition.x, mousePosition.y);
 
-        PressedStatus leftMousePressedStatus = (PressedStatus)receiveBytes[^1];
-        switch (leftMousePressedStatus)
+        Key key = (Key)BitConverter.ToInt32(receiveBytes, sizeof(int) * 2);
+        PressedStatus keyPressedStatus = (PressedStatus)receiveBytes[sizeof(int) * 2 + 1];
+
+        PressedStatus leftButtonStatus = (PressedStatus)receiveBytes[sizeof(int) * 2 + 2];
+        PressedStatus rightButtonStatus = (PressedStatus)receiveBytes[sizeof(int) * 2 + 3];
+        PressedStatus middleButtonStatus = (PressedStatus)receiveBytes[sizeof(int) * 2 + 4];
+
+        if (keyPressedStatus == PressedStatus.Pressed)
         {
-            case PressedStatus.None:
-                break;
+            MouseImpersonator.SimualteKeyboardPress(key);
+        }
+        else if (keyPressedStatus == PressedStatus.Pressed)
+        {
+            MouseImpersonator.SimualteKeyboardRelease(key);
+        }
+
+        switch (leftButtonStatus)
+        {
             case PressedStatus.Pressed:
-                MouseImpersonator.Press(mousePosition.x, mousePosition.y);
+                MouseImpersonator.SimualteMousePress(0);
                 break;
             case PressedStatus.Released:
-                MouseImpersonator.Release(mousePosition.x, mousePosition.y);
+                MouseImpersonator.SimualteMouseRelease(0);
+                break;
+        }
+        switch (rightButtonStatus)
+        {
+            case PressedStatus.Pressed:
+                MouseImpersonator.SimualteMousePress(1);
+                break;
+            case PressedStatus.Released:
+                MouseImpersonator.SimualteMouseRelease(1);
+                break;
+        }
+        switch (middleButtonStatus)
+        {
+            case PressedStatus.Pressed:
+                MouseImpersonator.SimualteMousePress(2);
+                break;
+            case PressedStatus.Released:
+                MouseImpersonator.SimualteMouseRelease(2);
                 break;
         }
     }
 
     public void SendImage(byte[] bytes, UdpModel other)
     {
-        const int chunkSize = 65000;
+        const int chunkSize = 65500;
         int chunks = bytes.Length / (chunkSize - sizeof(int));
 
         int remainder = bytes.Length % (chunkSize - sizeof(int)) + sizeof(int);
@@ -157,16 +233,21 @@ public class UdpController : MonoBehaviour
 
             _udpSenderClient.Send(chunk, remainder, other.Ip, other.Port);
         }
+
+        Thread.Sleep(5);
+
     }
 
-    public async Task<Sprite> ReceiveImage()
+    public byte[] ReceiveImage()
     {
         try
         {
+            IPEndPoint remoteIpEndPoint = new IPEndPoint(IPAddress.Any, 0);
+
             byte[] receiveBytes = null;
             do
             {
-                receiveBytes = (await _udpReceiverClient.ReceiveAsync()).Buffer;
+                receiveBytes = _udpReceiverClient.Receive(ref remoteIpEndPoint);
             } while (receiveBytes.Length != 5);
 
             int chunksAmount = receiveBytes[0];
@@ -176,8 +257,14 @@ public class UdpController : MonoBehaviour
 
             for (int i = 0; i < chunksAmount; i++)
             {
-                receiveBytes = (await _udpReceiverClient.ReceiveAsync()).Buffer;
+                receiveBytes = _udpReceiverClient.Receive(ref remoteIpEndPoint);
                 chunks[i] = receiveBytes;
+
+                int chunkSize = BitConverter.ToInt32(receiveBytes, 0);
+                if (receiveBytes.Length != chunkSize)
+                {
+                    return null;
+                }
             }
 
 
@@ -188,23 +275,11 @@ public class UdpController : MonoBehaviour
             {
                 receiveBytes = chunks[i];
 
-                int chunkSize = BitConverter.ToInt32(receiveBytes, 0);
-                if (receiveBytes.Length != chunkSize)
-                {
-                    return null;
-                }
-
                 Array.Copy(receiveBytes, sizeof(int), buffer, index, receiveBytes.Length - sizeof(int));
                 index += receiveBytes.Length - sizeof(int);
             }
 
-            Texture2D spriteTexture = new Texture2D(2, 2);
-            spriteTexture.LoadImage(buffer);
-
-            Rect rect = new(0, 0, spriteTexture.width, spriteTexture.height);
-            Sprite sprite = Sprite.Create(spriteTexture, rect, Vector2.zero, 100);
-
-            return sprite;
+            return buffer;
         }
         catch (Exception ex)
         {
@@ -213,7 +288,7 @@ public class UdpController : MonoBehaviour
         }
     }
 
-    static UdpClient GetUDPClientFromPorts(out string localIp, out int localPort, out string externalIp, out int externalPort)
+    private static UdpClient GetUDPClientFromPorts(out string localIp, out int localPort, out string externalIp, out int externalPort)
     {
         localIp = GetLocalIp();
         //externalIp = GetExternalIp();

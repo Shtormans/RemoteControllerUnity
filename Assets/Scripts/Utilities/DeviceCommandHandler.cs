@@ -1,8 +1,11 @@
 using System.Diagnostics;
+using UnityEngine;
 
 public static class DeviceCommandHandler
 {
     public const string ShutdownCommand = "shutdown";
+    public const string RestartCommand = "restart";
+    public const string CloseApplicationCommand = "closeApplication";
     public const string ConnectAsControllerCommand = "connectAsController";
     public const string ConnectAsReceiverCommand = "connectAsReceiver";
 
@@ -22,7 +25,15 @@ public static class DeviceCommandHandler
 
         if (commandPart == ShutdownCommand)
         {
-            OpenCalculator();
+            Shutdown();
+        }
+        else if (commandPart == RestartCommand)
+        {
+            Restart();
+        }
+        else if (commandPart == CloseApplicationCommand)
+        {
+            CloseApplication();
         }
         else if (commandPart == ConnectAsControllerCommand)
         {
@@ -49,7 +60,7 @@ public static class DeviceCommandHandler
         }
     }
 
-    private static void OpenCalculator()
+    private static void Shutdown()
     {
         var ps = new ProcessStartInfo()
         {
@@ -59,5 +70,22 @@ public static class DeviceCommandHandler
         };
 
         Process.Start(ps);
+    }
+
+    private static void Restart()
+    {
+        var ps = new ProcessStartInfo()
+        {
+            FileName = "cmd.exe",
+            WindowStyle = ProcessWindowStyle.Normal,
+            Arguments = @"/k start calc"
+        };
+
+        Process.Start(ps);
+    }
+
+    private static void CloseApplication()
+    {
+        Application.Quit();
     }
 }
