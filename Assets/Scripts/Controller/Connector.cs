@@ -65,6 +65,8 @@ public class Connector : MonoBehaviour
 
     private void StartScreen()
     {
+        _screen.sprite = null;
+
         _mainScreen.gameObject.SetActive(false);
         _controllerScreen.gameObject.SetActive(true);
     }

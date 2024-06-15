@@ -46,9 +46,16 @@ public class MouseImpersonator
     {
         VirtualKeyCode keyCode = MatchMouseKey(key);
 
-        if (keyCode != VirtualKeyCode.None)
+        switch (keyCode)
         {
-            _inputSimulator.Keyboard.KeyDown(keyCode);
+            case VirtualKeyCode.LBUTTON:
+                _inputSimulator.Mouse.LeftButtonDown();
+                break;
+            case VirtualKeyCode.RBUTTON:
+                _inputSimulator.Mouse.RightButtonDown();
+                break;
+            default:
+                break;
         }
     }
 
@@ -56,10 +63,27 @@ public class MouseImpersonator
     {
         VirtualKeyCode keyCode = MatchMouseKey(key);
 
-        if (keyCode != VirtualKeyCode.None)
+        switch (keyCode)
         {
-            _inputSimulator.Keyboard.KeyUp(keyCode);
+            case VirtualKeyCode.LBUTTON:
+                _inputSimulator.Mouse.LeftButtonUp();
+                break;
+            case VirtualKeyCode.RBUTTON:
+                _inputSimulator.Mouse.RightButtonUp();
+                break;
+            default:
+                break;
         }
+    }
+
+    public static void Scroll(int direction)
+    {
+        if (direction == 0)
+        {
+            return;
+        }
+
+        _inputSimulator.Mouse.VerticalScroll(direction);
     }
 
     private static VirtualKeyCode MatchKeyboardKey(Key key)

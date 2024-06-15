@@ -10,6 +10,8 @@ public class DeviceConnector : MonoBehaviour
     [SerializeField] private ErrorMessageAnimation _errorMessageAnimation;
     [SerializeField] private ConnectionButtonsAnimation _connectionButtonsAnimation;
     [SerializeField] private TMP_InputField _inputField;
+    [SerializeField] private UdpController _udpController;
+    [SerializeField] private MainSceneStartUpScript _mainSceneStartUpScript;
 
     private string _deviceId;
 
@@ -55,6 +57,32 @@ public class DeviceConnector : MonoBehaviour
     public void SendShutodownCommand()
     {
         StartCoroutine(SendCommand(DeviceCommandHandler.ShutdownCommand));
+    }
+
+    public void SendRestartCommand()
+    {
+        StartCoroutine(SendCommand(DeviceCommandHandler.RestartCommand));
+    }
+
+    public void SendCloseApplicationCommand()
+    {
+        StartCoroutine(SendCommand(DeviceCommandHandler.CloseApplicationCommand));
+    }
+
+    public void SendConnectAsReceiverCommand()
+    {
+        var model = _udpController.GetModel();
+        string command = DeviceCommandHandler.CreateConnectAsReceiverCommand(model.Ip, model.Port, _mainSceneStartUpScript.MainDeviceId);
+
+        StartCoroutine(SendCommand(command));
+    }
+
+    public void SendConnectAsControllerCommand()
+    {
+        var model = _udpController.GetModel();
+        string command = DeviceCommandHandler.CreateConnectAsControllerCommand(model.Ip, model.Port);
+
+        StartCoroutine(SendCommand(command));
     }
 
     private IEnumerator SendCommand(string command)

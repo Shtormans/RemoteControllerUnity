@@ -101,15 +101,7 @@ public class UdpController : MonoBehaviour
             rightMousePressedStatus = (byte)PressedStatus.Released;
         }
 
-        byte middleMousePressedStatus = (byte)PressedStatus.None;
-        if (Mouse.current.middleButton.wasPressedThisFrame)
-        {
-            middleMousePressedStatus = (byte)PressedStatus.Pressed;
-        }
-        if (Mouse.current.middleButton.wasReleasedThisFrame)
-        {
-            middleMousePressedStatus = (byte)PressedStatus.Released;
-        }
+        byte scroll = (byte)(Mouse.current.scroll.ReadValue().y / 120);
 
         byte[] bytes = new byte[sizeof(int) * 3 + 5];
 
@@ -118,7 +110,7 @@ public class UdpController : MonoBehaviour
 
         bytes[sizeof(int) * 3 + 2] = leftMousePressedStatus;
         bytes[sizeof(int) * 3 + 3] = rightMousePressedStatus;
-        bytes[sizeof(int) * 3 + 4] = middleMousePressedStatus;
+        bytes[sizeof(int) * 3 + 4] = scroll;
 
 
         Key keyCode = Key.None;
@@ -172,12 +164,7 @@ public class UdpController : MonoBehaviour
 
         PressedStatus leftButtonStatus = (PressedStatus)receiveBytes[sizeof(int) * 3 + 2];
         PressedStatus rightButtonStatus = (PressedStatus)receiveBytes[sizeof(int) * 3 + 3];
-        PressedStatus middleButtonStatus = (PressedStatus)receiveBytes[sizeof(int) * 3 + 4];
-
-        if (keyPressedStatus != PressedStatus.None)
-        {
-            Debug.Log($"{key} {keyPressedStatus}");
-        }
+        byte scroll = receiveBytes[sizeof(int) * 3 + 4];
 
         if (keyPressedStatus == PressedStatus.Pressed)
         {
@@ -206,15 +193,8 @@ public class UdpController : MonoBehaviour
                 MouseImpersonator.SimualteMouseRelease(1);
                 break;
         }
-        switch (middleButtonStatus)
-        {
-            case PressedStatus.Pressed:
-                MouseImpersonator.SimualteMousePress(2);
-                break;
-            case PressedStatus.Released:
-                MouseImpersonator.SimualteMouseRelease(2);
-                break;
-        }
+        
+        MouseImpersonator.Scroll(scroll);
     }
 
     public void SendImage(byte[] bytes, UdpModel other)

@@ -241,6 +241,7 @@ public class FirebaseRepository : MonoBehaviour
 
         yield return DateComparer.GetCurrentDateAndTime(dateTimeAction);
 
+        DateTime dd = now;
         TimeSpan difference = now - deviceModel.LastUpdated;
 
         if (difference.TotalSeconds > Constants.FirebaseConstants.DeviceEnabledTime)
