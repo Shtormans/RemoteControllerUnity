@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 
 public class UdpController : MonoBehaviour
 {
@@ -101,7 +103,16 @@ public class UdpController : MonoBehaviour
             rightMousePressedStatus = (byte)PressedStatus.Released;
         }
 
-        byte scroll = (byte)(Mouse.current.scroll.ReadValue().y / 120);
+        float scrollInt = Mouse.current.scroll.ReadValue().y / 120;
+        byte scroll = 1;
+        if (scrollInt < 0)
+        {
+            scroll = 0;
+        }
+        else
+        {
+            scroll = 2;
+        }
 
         byte[] bytes = new byte[sizeof(int) * 3 + 5];
 
@@ -164,7 +175,7 @@ public class UdpController : MonoBehaviour
 
         PressedStatus leftButtonStatus = (PressedStatus)receiveBytes[sizeof(int) * 3 + 2];
         PressedStatus rightButtonStatus = (PressedStatus)receiveBytes[sizeof(int) * 3 + 3];
-        byte scroll = receiveBytes[sizeof(int) * 3 + 4];
+        int scroll = (int)receiveBytes[sizeof(int) * 3 + 4] - 1;
 
         if (keyPressedStatus == PressedStatus.Pressed)
         {

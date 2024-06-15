@@ -71,8 +71,8 @@ public class ScreenCapture
         IntPtr compatibleBitmap = CreateCompatibleBitmap(desktopDC, _size.Width, _size.Height);
         IntPtr oldBitmap = SelectObject(compatibleDC, compatibleBitmap);
 
-        //BitBlt(compatibleDC, 0, 0, _size.Width, _size.Height, desktopDC, 0, 0, 0x00CC0020 /* SRCCOPY */);
-        BitBlt(compatibleDC, 0, 0, 300, 300, desktopDC, 0, 0, 0x00CC0020 /* SRCCOPY */);
+        BitBlt(compatibleDC, 0, 0, _size.Width, _size.Height, desktopDC, 0, 0, 0x00CC0020 /* SRCCOPY */);
+        //BitBlt(compatibleDC, 0, 0, 300, 300, desktopDC, 0, 0, 0x00CC0020 /* SRCCOPY */);
 
         Bitmap screenshot = Image.FromHbitmap(compatibleBitmap);
         //screenshot = RescaleBitmap(screenshot, 1300, 1000);
