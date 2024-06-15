@@ -44,18 +44,25 @@ public class UdpController : MonoBehaviour
 
     public UdpModel GetModel()
     {
+        if (_receiver != null && _receiver.InUse)
+        {
+            return _receiver;
+        }
+
         _udpReceiverClient = GetUDPClientFromPorts(out string localReceiverIp, out int localReceiverPort, out string externalReceiverIp, out int externalReceiverPort);
         _receiver = new UdpModel()
         {
             Ip = localReceiverIp,
-            Port = localReceiverPort
+            Port = localReceiverPort,
+            InUse = true
         };
 
         _udpSenderClient = GetUDPClientFromPorts(out string localSenderIp, out int localSenderPort, out string externalSenderIp, out int externalSenderPort);
         _sender = new()
         {
             Ip = localSenderIp,
-            Port = localSenderPort
+            Port = localSenderPort,
+            InUse = true
         };
 
         return _receiver;
@@ -63,16 +70,13 @@ public class UdpController : MonoBehaviour
 
     private void OnDisable()
     {
-        //ClosePorts();
+        ClosePorts();
     }
 
     public void ClosePorts()
     {
-        _udpReceiverClient.Close();
-        _udpSenderClient.Close();
-
-        _udpReceiverClient = null;
-        _udpSenderClient = null;
+        _receiver.InUse = false;
+        _sender.InUse = false;
     }
 
     public async Task SendKeys(Vector2 mousePosition, UdpModel other)
@@ -230,6 +234,8 @@ public class UdpController : MonoBehaviour
             Array.Copy(bytes, (chunkSize - sizeof(int)) * i, chunk, sizeof(int), chunkSize - sizeof(int));
 
             _udpSenderClient.Send(chunk, chunkSize, other.Ip, other.Port);
+
+            Thread.Sleep(5);
         }
 
         if (remainder != 0)

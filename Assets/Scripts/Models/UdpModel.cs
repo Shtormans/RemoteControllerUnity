@@ -6,4 +6,5 @@ public class UdpModel
 {
     public string Ip;
     public int Port;
+    public bool InUse;
 }

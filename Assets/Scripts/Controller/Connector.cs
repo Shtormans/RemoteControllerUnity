@@ -75,6 +75,7 @@ public class Connector : MonoBehaviour
         _controllerScreen.gameObject.SetActive(false);
 
         _isReceiver = false;
+        _udpController.ClosePorts();
         _cancellationTokenSource.Cancel();
     }
 
