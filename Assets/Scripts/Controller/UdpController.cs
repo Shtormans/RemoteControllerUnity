@@ -109,7 +109,7 @@ public class UdpController : MonoBehaviour
         {
             scroll = 0;
         }
-        else
+        else if (scrollInt > 0)
         {
             scroll = 2;
         }
@@ -185,6 +185,11 @@ public class UdpController : MonoBehaviour
         {
             MouseImpersonator.SimualteKeyboardRelease(key);
         }
+
+        if (key != Key.None)
+        {
+            Debug.Log($"{key} - {keyPressedStatus}");
+        }    
 
         switch (leftButtonStatus)
         {

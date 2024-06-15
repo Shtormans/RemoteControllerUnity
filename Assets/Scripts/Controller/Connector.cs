@@ -164,8 +164,6 @@ public class Connector : MonoBehaviour
 
     private void ListenForImages(CancellationTokenSource cancellationToken)
     {
-        int picturesAmount = 0;
-
         while (true)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -206,20 +204,6 @@ public class Connector : MonoBehaviour
 
     private void SendImages(UdpModel other, CancellationTokenSource cancellationToken)
     {
-            var bytes = ScreenCapture.CaptureScreen();
-            _udpController.SendImage(bytes, other);
-        //while (true)
-        //{
-        //    if (cancellationToken.IsCancellationRequested)
-        //    {
-        //        return;
-        //    }
-
-        //}
-    }
-
-    private void ReceiveKeys(CancellationTokenSource cancellationToken)
-    {
         while (true)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -227,10 +211,25 @@ public class Connector : MonoBehaviour
                 return;
             }
 
-            _udpController.ReceiveKeys();
-
-            _lastReceivedKeysTime = DateTime.UtcNow;
+            var bytes = ScreenCapture.CaptureScreen();
+            _udpController.SendImage(bytes, other);
         }
+    }
+
+    private void ReceiveKeys(CancellationTokenSource cancellationToken)
+    {
+        _udpController.ReceiveKeys();
+
+        _lastReceivedKeysTime = DateTime.UtcNow;
+        //while (true)
+        //{
+        //    if (cancellationToken.IsCancellationRequested)
+        //    {
+        //        return;
+        //    }
+
+            
+        //}
     }
 
     private void Update()
