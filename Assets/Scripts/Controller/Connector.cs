@@ -204,23 +204,8 @@ public class Connector : MonoBehaviour
 
     private void SendImages(UdpModel other, CancellationTokenSource cancellationToken)
     {
-        while (true)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
-
             var bytes = ScreenCapture.CaptureScreen();
             _udpController.SendImage(bytes, other);
-        }
-    }
-
-    private void ReceiveKeys(CancellationTokenSource cancellationToken)
-    {
-        _udpController.ReceiveKeys();
-
-        _lastReceivedKeysTime = DateTime.UtcNow;
         //while (true)
         //{
         //    if (cancellationToken.IsCancellationRequested)
@@ -228,8 +213,22 @@ public class Connector : MonoBehaviour
         //        return;
         //    }
 
-            
         //}
+    }
+
+    private void ReceiveKeys(CancellationTokenSource cancellationToken)
+    {
+        while (true)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            _udpController.ReceiveKeys();
+
+            _lastReceivedKeysTime = DateTime.UtcNow;
+        }
     }
 
     private void Update()
