@@ -145,6 +145,7 @@ public class Connector : MonoBehaviour
             DateTime time = DateTime.Now;
 
             byte[] buffer = GetSetBytes(null, false);
+
             if (buffer != null)
             {
                 Texture2D spriteTexture = new Texture2D(2, 2);
@@ -154,8 +155,6 @@ public class Connector : MonoBehaviour
                 Sprite sprite = Sprite.Create(spriteTexture, rect, Vector2.zero, 100);
 
                 _screen.sprite = sprite;
-
-                yield break;
             }
 
             yield return null;
