@@ -152,6 +152,8 @@ public class Connector : MonoBehaviour
                 Sprite sprite = Sprite.Create(spriteTexture, rect, Vector2.zero, 100);
 
                 _screen.sprite = sprite;
+
+                yield break;
             }
 
             yield return null;
@@ -187,7 +189,9 @@ public class Connector : MonoBehaviour
                 Vector2 mousePosition = Mouse.current.position.value;
 
                 mousePosition.x /= _controllerScreen.transform.localScale.x * _screen.rectTransform.rect.width / _screen.mainTexture.width;
-                mousePosition.y = (Screen.height - mousePosition.y) / _controllerScreen.transform.localScale.y * _screen.rectTransform.rect.height / _screen.mainTexture.height;
+                mousePosition.y /= _controllerScreen.transform.localScale.y * _screen.rectTransform.rect.height / _screen.mainTexture.height;
+
+                mousePosition.y = _screen.mainTexture.height - mousePosition.y;
 
                 await _udpController.SendKeys(mousePosition, other);
             }
@@ -200,16 +204,16 @@ public class Connector : MonoBehaviour
 
     private void SendImages(UdpModel other, CancellationTokenSource cancellationToken)
     {
-        while (true)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
-
             var bytes = ScreenCapture.CaptureScreen();
             _udpController.SendImage(bytes, other);
-        }
+        //while (true)
+        //{
+        //    if (cancellationToken.IsCancellationRequested)
+        //    {
+        //        return;
+        //    }
+
+        //}
     }
 
     private void ReceiveKeys(CancellationTokenSource cancellationToken)

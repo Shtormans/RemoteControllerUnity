@@ -111,14 +111,14 @@ public class UdpController : MonoBehaviour
             middleMousePressedStatus = (byte)PressedStatus.Released;
         }
 
-        byte[] bytes = new byte[sizeof(int) * 2 + 5];
+        byte[] bytes = new byte[sizeof(int) * 3 + 5];
 
         Array.Copy(BitConverter.GetBytes((int)mousePosition.x), 0, bytes, 0, sizeof(int));
         Array.Copy(BitConverter.GetBytes((int)mousePosition.y), 0, bytes, sizeof(int), sizeof(int));
 
-        bytes[sizeof(int) * 2 + 2] = leftMousePressedStatus;
-        bytes[sizeof(int) * 2 + 3] = rightMousePressedStatus;
-        bytes[sizeof(int) * 2 + 4] = middleMousePressedStatus;
+        bytes[sizeof(int) * 3 + 2] = leftMousePressedStatus;
+        bytes[sizeof(int) * 3 + 3] = rightMousePressedStatus;
+        bytes[sizeof(int) * 3 + 4] = middleMousePressedStatus;
 
 
         Key keyCode = Key.None;
@@ -149,7 +149,7 @@ public class UdpController : MonoBehaviour
         }
 
         Array.Copy(BitConverter.GetBytes((int)keyCode), 0, bytes, sizeof(int) * 2, sizeof(int));
-        bytes[sizeof(int) * 2 + 1] = (byte)keyPressedStatus;
+        bytes[sizeof(int) * 3 + 1] = (byte)keyPressedStatus;
 
         await _udpSenderClient.SendAsync(bytes, bytes.Length, other.Ip, other.Port);
     }
@@ -168,11 +168,16 @@ public class UdpController : MonoBehaviour
         MouseImpersonator.SetCursorPos(mousePosition.x, mousePosition.y);
 
         Key key = (Key)BitConverter.ToInt32(receiveBytes, sizeof(int) * 2);
-        PressedStatus keyPressedStatus = (PressedStatus)receiveBytes[sizeof(int) * 2 + 1];
+        PressedStatus keyPressedStatus = (PressedStatus)receiveBytes[sizeof(int) * 3 + 1];
 
-        PressedStatus leftButtonStatus = (PressedStatus)receiveBytes[sizeof(int) * 2 + 2];
-        PressedStatus rightButtonStatus = (PressedStatus)receiveBytes[sizeof(int) * 2 + 3];
-        PressedStatus middleButtonStatus = (PressedStatus)receiveBytes[sizeof(int) * 2 + 4];
+        PressedStatus leftButtonStatus = (PressedStatus)receiveBytes[sizeof(int) * 3 + 2];
+        PressedStatus rightButtonStatus = (PressedStatus)receiveBytes[sizeof(int) * 3 + 3];
+        PressedStatus middleButtonStatus = (PressedStatus)receiveBytes[sizeof(int) * 3 + 4];
+
+        if (keyPressedStatus != PressedStatus.None)
+        {
+            Debug.Log($"{key} {keyPressedStatus}");
+        }
 
         if (keyPressedStatus == PressedStatus.Pressed)
         {
