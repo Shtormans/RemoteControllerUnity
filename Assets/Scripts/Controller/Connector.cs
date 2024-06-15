@@ -204,16 +204,16 @@ public class Connector : MonoBehaviour
 
     private void SendImages(UdpModel other, CancellationTokenSource cancellationToken)
     {
+        while (true)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
             var bytes = ScreenCapture.CaptureScreen();
             _udpController.SendImage(bytes, other);
-        //while (true)
-        //{
-        //    if (cancellationToken.IsCancellationRequested)
-        //    {
-        //        return;
-        //    }
-
-        //}
+        }
     }
 
     private void ReceiveKeys(CancellationTokenSource cancellationToken)

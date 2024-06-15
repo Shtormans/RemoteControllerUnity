@@ -235,7 +235,6 @@ public class UdpController : MonoBehaviour
             Array.Copy(bytes, (chunkSize - sizeof(int)) * i, chunk, sizeof(int), chunkSize - sizeof(int));
 
             _udpSenderClient.Send(chunk, chunkSize, other.Ip, other.Port);
-
             Thread.Sleep(5);
         }
 
