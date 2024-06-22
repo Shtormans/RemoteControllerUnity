@@ -62,26 +62,16 @@ public static class DeviceCommandHandler
 
     private static void Shutdown()
     {
-        var ps = new ProcessStartInfo()
-        {
-            FileName = "cmd.exe",
-            WindowStyle = ProcessWindowStyle.Normal,
-            Arguments = @"/k start calc"
-        };
+        string strCmdText = "/C shutdown /s";
 
-        Process.Start(ps);
+        System.Diagnostics.Process.Start("CMD.exe", strCmdText);
     }
 
     private static void Restart()
     {
-        var ps = new ProcessStartInfo()
-        {
-            FileName = "cmd.exe",
-            WindowStyle = ProcessWindowStyle.Normal,
-            Arguments = @"/k start calc"
-        };
+        string strCmdText = "/C shutdown /r";
 
-        Process.Start(ps);
+        System.Diagnostics.Process.Start("CMD.exe", strCmdText);
     }
 
     private static void CloseApplication()

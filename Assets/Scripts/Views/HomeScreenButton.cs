@@ -6,6 +6,6 @@ public class HomeScreenButton : MonoBehaviour
 {
     public void MoveToHomeScreen()
     {
-        SceneController.ChangeSceneToMainMenu();
+        SceneController.ChangeSceneToGame();
     }
 }

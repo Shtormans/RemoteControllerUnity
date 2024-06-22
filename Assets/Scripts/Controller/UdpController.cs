@@ -51,6 +51,9 @@ public class UdpController : MonoBehaviour
             return _receiver;
         }
 
+        _udpReceiverClient?.Close();
+        _udpSenderClient?.Close();
+
         _udpReceiverClient = GetUDPClientFromPorts(out string localReceiverIp, out int localReceiverPort, out string externalReceiverIp, out int externalReceiverPort);
         _receiver = new UdpModel()
         {
@@ -127,15 +130,12 @@ public class UdpController : MonoBehaviour
         Key keyCode = Key.None;
         PressedStatus keyPressedStatus = PressedStatus.None;
 
-        if (Keyboard.current.anyKey.wasPressedThisFrame)
+        foreach (var key in Keyboard.current.allKeys)
         {
-            foreach (var key in Keyboard.current.allKeys)
+            if (key.wasPressedThisFrame)
             {
-                if (key.wasPressedThisFrame)
-                {
-                    keyCode = key.keyCode;
-                    keyPressedStatus = PressedStatus.Pressed;
-                }
+                keyCode = key.keyCode;
+                keyPressedStatus = PressedStatus.Pressed;
             }
         }
 
@@ -186,11 +186,6 @@ public class UdpController : MonoBehaviour
             MouseImpersonator.SimualteKeyboardRelease(key);
         }
 
-        if (key != Key.None)
-        {
-            Debug.Log($"{key} - {keyPressedStatus}");
-        }    
-
         switch (leftButtonStatus)
         {
             case PressedStatus.Pressed:
@@ -209,7 +204,7 @@ public class UdpController : MonoBehaviour
                 MouseImpersonator.SimualteMouseRelease(1);
                 break;
         }
-        
+
         MouseImpersonator.Scroll(scroll);
     }
 

@@ -513,7 +513,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.85098046, g: 0.34117648, b: 0.34117648, a: 1}
+  m_Color: {r: 0.2901961, g: 0.6862745, b: 0.96862745, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -648,7 +648,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.85098046, g: 0.34117648, b: 0.34117648, a: 1}
+  m_Color: {r: 0.2901961, g: 0.6862745, b: 0.96862745, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -792,7 +792,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.6901961, g: 0.5882353, b: 0.5882353, a: 1}
+  m_Color: {r: 0.99215686, g: 0.9490196, b: 0.9490196, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -883,8 +883,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+    rgba: 4278782218
+  m_fontColor: {r: 0.03773582, g: 0.034709834, b: 0.034709834, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1381,8 +1381,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+    rgba: 4279769117
+  m_fontColor: {r: 0.11320752, g: 0.0934496, b: 0.0934496, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1635,6 +1635,10 @@ PrefabInstance:
       value: SettingsMenu
       objectReference: {fileID: 0}
     - target: {fileID: 6714762025528718678, guid: a2a564db211e48c4dbf669bb587568d7, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7237950371000004571, guid: a2a564db211e48c4dbf669bb587568d7, type: 3}
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
@@ -1935,7 +1939,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7359307910729051505, guid: 128dfcd98b61f9c47b7d67ee40488ede, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -60.47
+      value: 53.2
       objectReference: {fileID: 0}
     - target: {fileID: 7359307910729051505, guid: 128dfcd98b61f9c47b7d67ee40488ede, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x

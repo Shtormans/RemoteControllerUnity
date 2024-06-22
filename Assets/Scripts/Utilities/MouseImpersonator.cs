@@ -145,7 +145,7 @@ public class MouseImpersonator
             Key.LeftAlt => VirtualKeyCode.MENU,
             Key.RightAlt => VirtualKeyCode.RMENU,
             Key.LeftCtrl => VirtualKeyCode.CONTROL,
-            Key.RightCtrl => VirtualKeyCode.RCONTROL,
+            //Key.RightCtrl => VirtualKeyCode.CONTROL,
             Key.LeftWindows => VirtualKeyCode.LWIN,
             Key.RightWindows => VirtualKeyCode.RWIN,
             Key.Escape => VirtualKeyCode.ESCAPE,
